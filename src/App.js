@@ -13,10 +13,20 @@ function App() {
       isDone: false,
     }
   ]);
+  const isEditing = Object.prototype.hasOwnProperty.call(selectedTodo, 'todo');
 
-  const addNewTodo = newTodo => new Promise(resolve => {
-    setTodos(currentVal => [ newTodo, ...currentVal ]);
-    resolve('Success');
+  const addNewTodo = () => new Promise((resolve, reject) => {
+    const todo = todoInput;
+    if(!todo || (todo && todo.trim() === ""))
+      reject('Invalid input');
+
+    const newTodo = {
+      id: v4(),
+      todo,
+      isDone: false,
+    }
+
+    resolve(newTodo);
   });
 
   const updateTodo = () => new Promise((resolve, reject) => {
@@ -24,34 +34,34 @@ function App() {
     const todoIndex = copyTodos.findIndex(todo => todo.id === selectedTodo.id);
     if(todoIndex !== -1){
       copyTodos[todoIndex] = selectedTodo;
-      setTodos(copyTodos);
-      resolve('Success');
+      const todo = copyTodos[todoIndex].todo;
+      if(!todo || (todo && todo.trim() === ""))
+        reject('Invalid input');
+      
+      resolve(copyTodos);
     }else
       reject('Error');
   });
 
   const handleSubmit = e => {
     e.preventDefault();
-    const todo = todoInput;
-    const newTodo = {
-      id: v4(),
-      todo,
-      // todo: todoInput
-      isDone: false,
-    }
 
-    if(selectedTodo && selectedTodo.todo)
+    if(isEditing)
       updateTodo()
+        .then(res => setTodos(res))
         .then(() => setSelectedTodo({}))
         .catch(err => console.log(err))
         .finally(() => setTodo('')); //if ever todoinput is not empty when todo is selected
     else
-      addNewTodo(newTodo).finally(() => setTodo(''));
+      addNewTodo()
+        .then(res => setTodos(currentVal => [ res, ...currentVal ]))
+        .catch(err => console.log(err))
+        .finally(() => setTodo(''));
   }
 
   const handleInputChange = e => {
     const todo = e.target.value;
-    if(selectedTodo && selectedTodo.todo)
+    if(isEditing)
       setSelectedTodo(current => ({ ...current, todo }))
     else
       setTodo(todo);
@@ -78,8 +88,9 @@ function App() {
         <input
           type="text"
           onChange={handleInputChange}
-          value={selectedTodo && selectedTodo.todo ? selectedTodo.todo :  todoInput}
+          value={isEditing ? selectedTodo.todo :  todoInput}
           placeholder="Input Todo"
+          required
         />
         <button type="submit" >Submit</button>
 
